@@ -8,22 +8,20 @@ import (
 )
 
 func main() {
+	if database, _ := PGConnect(); database != nil {
+		defer database.Close()
+		fruits := GetFruit(database)
+		fmt.Printf("%s\n", fruits)
+	}
+}
+
+func PGConnect() (*sql.DB, error) {
 	database, err := sql.Open("postgres", "dbname=railsconf2015 user=developer password=password sslmode=verify-full")
-	defer database.Close()
 	if err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
-	rows, err := database.Query("SELECT * FROM fruits")
-	if err != nil {
-		log.Fatalf("[x] Error when getting the list of fruit. Reason %s", err.Error())
-	}
-	var id int
-	var name string
-	for rows.Next() {
-		rows.Scan(&id, &name)
-		fruit := &Fruit{id, name}
-		fmt.Printf("%+v\n", fruit)
-	}
+	return database, nil
 }
 
 type Fruit struct {
@@ -31,7 +29,19 @@ type Fruit struct {
 	Name string
 }
 
-/*
+func GetFruit(database *sql.DB) []*Fruit {
+	fruits := make([]*Fruit, 0)
+	rows, err := database.Query("SELECT * FROM fruits")
+	if err != nil {
+		log.Fatalf("[x] Error when getting the list of fruit. Reason %s", err.Error())
+	}
+	for rows.Next() {
+		fruit := toFruit(rows)
+		fruits = append(fruits, fruit)
+	}
+	return fruits
+}
+
 func toFruit(rows *sql.Rows) *Fruit {
 	var id int
 	var name string
@@ -42,4 +52,3 @@ func toFruit(rows *sql.Rows) *Fruit {
 		Name: name,
 	}
 }
-*/
